@@ -136,3 +136,26 @@ def delete_location(request, pk):
     if loc.added_by == request.user:
         loc.delete()
     return redirect('dashboard')
+
+
+def food_details(request):
+    # Fetch all food items (or filter as needed)
+    food_items = FoodDonation.objects.all().order_by('-created_at')
+
+    context = {
+        'food_items': food_items,
+    }
+    return render(request, 'foodDetails.html',context)
+
+def location_details(request):
+    # Fetch all shared needy locations
+    needy_locations = NeedyLocation.objects.all().order_by('-created_at')
+
+    context = {
+        'needy_locations': needy_locations,
+    }
+    return render(request, 'locationDetails.html', context)
+
+def logout_view(request):
+    logout(request)
+    return redirect('login') 

@@ -3,203 +3,173 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Share Location</title>
+  <title>Share Food</title>
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-  <!-- Leaflet Geocoder CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
   <style>
-    body, html {
-      height: 100%;
-      margin: 0;
+    body {
       font-family: Arial, sans-serif;
-      background: url('https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1650&q=80') no-repeat center center fixed;
-      background-size: cover;
-      color: #fff;
+      background: #f4f7f6;
+      margin: 0;
+      padding: 0;
     }
-
     .container {
-      max-width: 900px;
-      margin: 30px auto;
-      background: rgba(255, 255, 255, 0.95);
-      border-radius: 15px;
+      max-width: 700px;
+      margin: 40px auto;
+      background: #fff;
       padding: 25px;
-      color: #333;
-      box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+      border-radius: 12px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.1);
     }
-
     h2 {
       text-align: center;
       margin-bottom: 20px;
       color: #2c3e50;
     }
-
-    form {
-      display: grid;
-      gap: 15px;
-    }
-
     label {
       font-weight: bold;
-      color: #444;
+      margin-top: 10px;
+      display: block;
     }
-
-    input, textarea {
+    input, select {
       width: 100%;
       padding: 10px;
-      border-radius: 8px;
       border: 1px solid #ccc;
-      outline: none;
+      border-radius: 8px;
+      margin-top: 5px;
     }
-
-    input:focus, textarea:focus {
-      border-color: #27ae60;
-    }
-
     #map {
-      height: 400px;
+      height: 300px;
       width: 100%;
-      border-radius: 12px;
-      margin-top: 15px;
+      border-radius: 8px;
+      margin-top: 10px;
     }
-
     .btn {
-      background: #27ae60;
-      color: #fff;
+      margin-top: 15px;
+      width: 100%;
       padding: 12px;
       border: none;
       border-radius: 8px;
-      cursor: pointer;
+      background: #27ae60;
+      color: #fff;
       font-size: 16px;
+      cursor: pointer;
     }
-
     .btn:hover {
       background: #219150;
     }
-
     .locate-btn {
+      margin-top: 10px;
       background: #2980b9;
-      color: white;
-      padding: 12px;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 16px;
-    }
-
-    .locate-btn:hover {
-      background: #21618c;
-    }
-
-    .back-link a {
-      color: #4CAF50;
-      text-decoration: none;
-      font-weight: bold;
-    }
-    .back-link a:hover {
-      text-decoration: underline;
+      width: 100%;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h2>📍 Share Location</h2>
-    <form method="POST" enctype="multipart/form-data" action="{% url 'share_location' %}">
+    <h2>🍲 Share Food</h2>
+    <form method="POST" action="{% url 'share_food' %}">
       {% csrf_token %}
 
-      <div>
-        <label for="sendername">Your Name:</label>
-        <input type="text" name="sender_name" id="sendername" placeholder="Enter your name" required>
-      </div>
+      <label for="food_name">Food Name:</label>
+      <input type="text" name="food_name" id="food_name" required>
 
-      <div>
-        <label for="phone">Phone Number (Optional):</label>
-        <input type="tel" name="phone_number" id="phone" placeholder="Enter phone number">
-      </div>
+      <label for="quantity">Quantity:</label>
+      <input type="text" name="quantity" id="quantity" required>
 
-      <div>
-        <label for="placename">Place / Center Name:</label>
-        <input type="text" name="place_name" id="placename" placeholder="e.g., Orphanage, Bus Stand, Roadside" required>
-      </div>
+      <label for="expiry_date">Expiry Date:</label>
+      <input type="date" name="expiry_date" id="expiry_date" required>
 
-      <div>
-        <label for="photo">Upload Photo (Optional):</label>
-        <input type="file" name="photo" id="photo" accept="image/*">
-      </div>
+      <label for="submission_date">Submission Date:</label>
+      <input type="date" name="submission_date" id="submission_date" readonly>
 
-      <!-- Hidden inputs for latitude/longitude -->
+      <label for="status">Status:</label>
+      <select name="status" id="status">
+        <option value="Pending">Pending</option>
+        <option value="Delivered">Delivered</option>
+      </select>
+
+      <!-- Hidden inputs for location -->
       <input type="hidden" name="latitude" id="latitude">
       <input type="hidden" name="longitude" id="longitude">
 
-      <div>
-        <label for="map">Select Location:</label>
-        <div id="map"></div>
-      </div>
+      <label>Select Location (Optional):</label>
+      <div id="map"></div>
+      <button type="button" class="btn locate-btn" onclick="findLocation()">📍 Use Current Location</button>
 
-      <button type="button" class="locate-btn" onclick="findLocation()">📍 Use Current Location</button>
-      <button type="submit" class="btn">✅ Submit Location</button>
+      <button type="submit" class="btn">✅ Submit Food</button>
     </form>
 
-    <!-- Leaflet JS -->
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
-    <script>
-      // Initialize map
-      var map = L.map('map').setView([20.5937, 78.9629], 5); // India
-
-      // OpenStreetMap tiles
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors'
-      }).addTo(map);
-
-      // Geocoder (search)
-      var geocoder = L.Control.geocoder({ defaultMarkGeocode: false })
-        .on('markgeocode', function(e) {
-          var center = e.geocode.center;
-          L.marker(center).addTo(map).bindPopup(e.geocode.name).openPopup();
-          map.setView(center, 16);
-
-          // Update hidden inputs
-          document.getElementById('latitude').value = center.lat;
-          document.getElementById('longitude').value = center.lng;
-        }).addTo(map);
-
-      // Click on map to select location
-      map.on('click', function(e) {
-        var latlng = e.latlng;
-        L.marker(latlng).addTo(map).bindPopup("Selected Location").openPopup();
-
-        // Update hidden inputs
-        document.getElementById('latitude').value = latlng.lat;
-        document.getElementById('longitude').value = latlng.lng;
-      });
-
-      // Current location
-      function findLocation() {
-        map.locate({ setView: true, maxZoom: 16 });
-      }
-
-      function onLocationFound(e) {
-        var latlng = e.latlng;
-        L.marker(latlng).addTo(map).bindPopup("You are here").openPopup();
-        L.circle(latlng, e.accuracy / 2).addTo(map);
-
-        // Set hidden inputs
-        document.getElementById('latitude').value = latlng.lat;
-        document.getElementById('longitude').value = latlng.lng;
-      }
-
-      function onLocationError(e) {
-        alert(e.message);
-      }
-
-      map.on('locationfound', onLocationFound);
-      map.on('locationerror', onLocationError);
-    </script>
-
-    <div class="back-link">
-      <p><a href="{% url 'dashboard' %}">⬅ Back to Dashboard</a></p>
-    </div>
+    <p style="text-align:center;margin-top:10px;">
+      <a href="{% url 'dashboard' %}">⬅ Back to Dashboard</a>
+    </p>
   </div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+
+  <script>
+    // Init map
+    var map = L.map('map').setView([20.5937, 78.9629], 5); // India
+
+    // Tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    var marker;
+
+    // Map click
+    map.on('click', function(e) {
+      var latlng = e.latlng;
+      if (marker) map.removeLayer(marker);
+      marker = L.marker(latlng).addTo(map).bindPopup("Selected").openPopup();
+
+      document.getElementById('latitude').value = latlng.lat;
+      document.getElementById('longitude').value = latlng.lng;
+    });
+
+    // Current location
+    function findLocation() {
+      map.locate({ setView: true, maxZoom: 16 });
+    }
+
+    map.on('locationfound', function(e) {
+      var latlng = e.latlng;
+      if (marker) map.removeLayer(marker);
+      marker = L.marker(latlng).addTo(map).bindPopup("You are here").openPopup();
+
+      document.getElementById('latitude').value = latlng.lat;
+      document.getElementById('longitude').value = latlng.lng;
+    });
+
+    map.on('locationerror', function(e) {
+      alert(e.message);
+    });
+
+    // Add search control on map
+    L.Control.geocoder({
+      defaultMarkGeocode: false
+    })
+    .on('markgeocode', function(e) {
+      var latlng = e.geocode.center;
+      map.setView(latlng, 13);
+
+      if (marker) map.removeLayer(marker);
+      marker = L.marker(latlng).addTo(map).bindPopup(e.geocode.name).openPopup();
+
+      document.getElementById('latitude').value = latlng.lat;
+      document.getElementById('longitude').value = latlng.lng;
+    })
+    .addTo(map);
+
+    // Auto-fill submission date
+    document.addEventListener("DOMContentLoaded", function() {
+      var today = new Date().toISOString().split('T')[0];
+      document.getElementById("submission_date").value = today;
+    });
+  </script>
 </body>
 </html>

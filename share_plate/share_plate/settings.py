@@ -53,10 +53,13 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'share_plate.urls'
 
+import os
+BASE_DIR = Path(__file__).resolve().parent.parent
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],  # <-- add this line
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -81,7 +84,7 @@ DATABASES = {
         'USER': 'root',
         'PASSWORD': 'ajmal@153153',
         'HOST':'localhost',
-        'POST': '3306'
+        'PORT': '3306'
 
     }
 }
